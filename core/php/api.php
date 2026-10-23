@@ -21,12 +21,12 @@ require_once __DIR__ . '/../../../../core/php/core.inc.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-function rpidash_reply($result, $code = 200) {
+function rpidash_reply($result, $code = 200, $errorCode = '', $extra = array()) {
     http_response_code($code);
     if ($code == 200) {
         echo json_encode(array('state' => 'ok', 'result' => $result));
     } else {
-        echo json_encode(array('state' => 'error', 'error' => $result));
+        echo json_encode(array_merge(array('state' => 'error', 'error' => $result, 'code' => $errorCode), $extra));
     }
     die();
 }
@@ -65,6 +65,17 @@ try {
             $cmd = cmd::byId(init('cmd_id'));
             if (!$eqLogic->isCmdAllowed($cmd)) {
                 rpidash_reply(__('Commande non autorisée sur cet écran', __FILE__), 403);
+            }
+            if ($eqLogic->cmdNeedsPin($cmd)) {
+                list($ok, $reason, $wait) = $eqLogic->checkPin((string) init('pin'));
+                if (!$ok) {
+                    $messages = array(
+                        'required' => __('Code requis', __FILE__),
+                        'invalid' => __('Code incorrect', __FILE__),
+                        'locked' => __('Trop d\'essais : écran bloqué quelques minutes', __FILE__),
+                    );
+                    rpidash_reply($messages[$reason], 403, 'pin_' . $reason, array('wait' => $wait));
+                }
             }
             $options = array();
             switch ($cmd->getSubType()) {

@@ -190,6 +190,18 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
                 </div>
               </div>
 
+              <legend><i class="fas fa-key"></i> {{Sécurité}}</legend>
+              <div class="form-group">
+                <label class="col-sm-3 control-label">{{Code de l'écran}}
+                  <sup><i class="fas fa-question-circle tooltips" title="{{4 à 8 chiffres, demandés sur l'écran avant les actions des équipements cochés dans la colonne Code. Le code n'est jamais stocké en clair.}}"></i></sup>
+                </label>
+                <div class="col-sm-8">
+                  <input type="password" inputmode="numeric" autocomplete="new-password" maxlength="8" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="pinNew" placeholder="{{Nouveau code (laisser vide pour ne pas changer)}}">
+                  <span class="help-block" id="span_rpidashPinStatus"></span>
+                  <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="pinClear">{{Supprimer le code}}</label>
+                </div>
+              </div>
+
               <legend><i class="fas fa-stethoscope"></i> {{Diagnostic}}</legend>
               <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-8">
@@ -238,13 +250,14 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
                   $rows .= '<td style="width:130px;"><select class="form-control input-sm rpidashEqSize" data-id="' . $eq->getId() . '">';
                   $rows .= '<option value="0">{{Taille auto}}</option><option value="1">{{Tuile normale}}</option><option value="2">{{Tuile large}}</option>';
                   $rows .= '</select></td>';
-                  $rows .= '<td style="width:90px;text-align:center;"><input type="checkbox" class="rpidashEqHome" data-id="' . $eq->getId() . '"></td></tr>';
+                  $rows .= '<td style="width:90px;text-align:center;"><input type="checkbox" class="rpidashEqHome" data-id="' . $eq->getId() . '"></td>';
+                  $rows .= '<td style="width:80px;text-align:center;"><input type="checkbox" class="rpidashEqPin" data-id="' . $eq->getId() . '"></td></tr>';
               }
               if ($rows == '') {
                   continue;
               }
               echo '<fieldset class="rpidashGroup"><legend>' . htmlspecialchars($group['name']) . '</legend>';
-              echo '<table class="table table-condensed table-hover"><thead><tr><th>{{Équipement}}</th><th>{{Widget}}</th><th>{{Taille}}</th><th style="text-align:center;">{{Accueil}} <sup><i class="fas fa-question-circle tooltips" title="{{Affiché sur la page Accueil}}"></i></sup></th></tr></thead><tbody>' . $rows . '</tbody></table></fieldset>';
+              echo '<table class="table table-condensed table-hover"><thead><tr><th>{{Équipement}}</th><th>{{Widget}}</th><th>{{Taille}}</th><th style="text-align:center;">{{Accueil}} <sup><i class="fas fa-question-circle tooltips" title="{{Affiché sur la page Accueil}}"></i></sup></th><th style="text-align:center;">{{Code}} <sup><i class="fas fa-question-circle tooltips" title="{{Les actions de cet équipement demandent le code de l’écran (sauf activer l’alarme et verrouiller)}}"></i></sup></th></tr></thead><tbody>' . $rows . '</tbody></table></fieldset>';
           }
           ?>
         </div>

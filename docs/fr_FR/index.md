@@ -85,6 +85,19 @@ Conseils :
   (Réglages > Système > Éditeur de fichiers, ou SSH) ;
 - les libellés de la boîte aux lettres se règlent en haut de `dashboard/rpidash.js` (`MAILBOX_LABELS`).
 
+### Code de sécurité
+
+Dans l'onglet **Écran**, section **Sécurité**, saisissez un code de 4 à 8 chiffres puis cochez la colonne
+**Code** des équipements à protéger (onglet *Équipements affichés*). Sur l'écran, un pavé numérique est alors
+demandé avant leurs actions.
+
+- Le code n'est jamais stocké en clair (seule son empreinte est conservée) et il est vérifié par Jeedom :
+  l'API refuse l'action sans le bon code, même appelée directement.
+- Restent sans code : **activer l'alarme** et **verrouiller** une serrure (ou fermer un portail).
+- Après un code correct, les actions suivantes ne le redemandent pas pendant 30 secondes.
+- Après 5 codes faux, l'écran est bloqué 5 minutes.
+- Pour changer le code, saisissez-en un nouveau ; pour le retirer, cochez **Supprimer le code**.
+
 ### Diagnostic
 
 Le bloc **Diagnostic** de l'onglet Écran génère un résumé des équipements de l'écran (commandes, types
@@ -124,7 +137,7 @@ L'écran utilise `plugins/rpidash/core/php/api.php` (POST ou GET), avec `apikey`
 | `get` | – | configuration de l'écran, pièces, équipements, commandes et valeurs |
 | `values` | – | valeurs actuelles des commandes info |
 | `diagnostic` | – | résumé des équipements (lecture seule) |
-| `exec` | `cmd_id`, `value` (curseur, couleur, liste) ou `title` + `message` | exécute l'action et renvoie les valeurs |
+| `exec` | `cmd_id`, `value` (curseur, couleur, liste) ou `title` + `message`, `pin` si l'équipement est protégé | exécute l'action et renvoie les valeurs |
 
 Seules les actions visibles des équipements sélectionnés sur l'écran peuvent être exécutées.
 

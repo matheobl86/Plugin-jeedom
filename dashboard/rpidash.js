@@ -6,6 +6,7 @@
   var RELOAD_STRUCTURE_MS = 5 * 60 * 1000
   var CAMERA_REFRESH_MS = 3000
   var HOME_IDLE_MS = 2 * 60 * 1000 // retour à l'accueil après 2 min sans toucher l'écran
+  var PIN_MEMORY_MS = 30 * 1000 // après un code correct, les actions suivantes ne le redemandent pas
 
   // Libellés des codes de statut (widgets Boîte aux lettres et Présence) : à adapter si besoin
   var MAILBOX_LABELS = { 0: 'Vide', 1: 'Courrier', 2: 'Colis', 3: 'Courrier + colis' }
@@ -19,7 +20,9 @@
     structureKey: '',
     lastStructure: 0,
     pollTimer: null,
-    holding: 0 // > 0 tant qu'un curseur est en cours de manipulation
+    holding: 0, // > 0 tant qu'un curseur est en cours de manipulation
+    pinCmds: {},
+    pin: { value: '', until: 0 }
   }
   var app = document.getElementById('app')
   var grid = document.getElementById('grid')
@@ -34,7 +37,12 @@
     return fetch(BOOT.apiUrl, { method: 'POST', body: body, cache: 'no-store' })
       .then(function(r) { return r.json() })
       .then(function(json) {
-        if (json.state !== 'ok') throw new Error(json.error || 'Erreur')
+        if (json.state !== 'ok') {
+          var error = new Error(json.error || 'Erreur')
+          error.code = json.code || ''
+          error.wait = json.wait || 0
+          throw error
+        }
         setOnline(true)
         return json.result
       })
@@ -157,6 +165,12 @@
   }
 
   function render() {
+    state.pinCmds = {}
+    state.objects.forEach(function(o) {
+      o.eqLogics.forEach(function(eq) {
+        eq.cmds.forEach(function(c) { if (c.needsPin) state.pinCmds[c.id] = true })
+      })
+    })
     renderRooms()
     grid.innerHTML = ''
     var home = state.room === 'home'
@@ -1009,7 +1023,7 @@
         label: function(isLocked, v) { return textual && v ? capitalize(v) : (isLocked ? 'Verrouillée' : 'Déverrouillée') },
         click: function(isLocked) {
           if (isLocked) {
-            if (!open || !window.confirm('Déverrouiller « ' + ctx.eq.name + ' » ?')) return null
+            if (!open || (!open.needsPin && !window.confirm('Déverrouiller « ' + ctx.eq.name + ' » ?'))) return null
             return { cmd_id: open.id }
           }
           return close ? { cmd_id: close.id } : null
@@ -1034,7 +1048,7 @@
           label: function(armed) { return armed ? 'Activée' : 'Désactivée' },
           click: function(armed) {
             if (armed) {
-              if (!disarm || !window.confirm('Désactiver l\'alarme ?')) return null
+              if (!disarm || (!disarm.needsPin && !window.confirm('Désactiver l\'alarme ?'))) return null
               return { cmd_id: disarm.id }
             }
             return arm ? { cmd_id: arm.id } : null
@@ -1466,16 +1480,100 @@
 
   function run(node, params) {
     node.classList.add('pending')
-    params.action = 'exec'
-    return api(params)
-      .then(function(result) {
-        flash(node, 'ok')
-        updateValues(result.values)
+    var cancel = function() {
+      node.classList.remove('pending')
+      updateValues({}) // annulé : remet l'affichage sur le dernier état connu
+    }
+    var send = function(pin) {
+      var body = { action: 'exec' }
+      Object.keys(params).forEach(function(k) { body[k] = params[k] })
+      if (pin) body.pin = pin
+      return api(body)
+        .then(function(result) {
+          if (pin) state.pin = { value: pin, until: Date.now() + PIN_MEMORY_MS }
+          flash(node, 'ok')
+          updateValues(result.values)
+        })
+        .catch(function(e) {
+          if (e.code === 'pin_required' || e.code === 'pin_invalid') {
+            state.pin = { value: '', until: 0 }
+            return askPin(e.code === 'pin_invalid' ? 'Code incorrect' : '').then(send, cancel)
+          }
+          if (e.code === 'pin_locked') toast('Trop d\'essais : réessayez dans ' + Math.max(1, Math.ceil(e.wait / 60)) + ' min')
+          flash(node, 'err')
+          updateValues({}) // remet l'affichage sur le dernier état connu
+        })
+    }
+    if (state.pinCmds[params.cmd_id]) {
+      if (state.pin.until > Date.now()) return send(state.pin.value)
+      return askPin('').then(send, cancel)
+    }
+    return send('')
+  }
+
+  /* ------------------------------------------------- Code de sécurité */
+
+  // Pavé numérique ; la promesse donne le code saisi, ou est rejetée si on annule
+  function askPin(error) {
+    return new Promise(function(resolve, reject) {
+      var code = ''
+      var overlay = el('div', 'overlay pin-overlay')
+      var box = el('div', 'pin-box')
+      box.appendChild(el('div', 'pin-title', 'Code de sécurité'))
+      var dots = el('div', 'pin-dots')
+      var message = el('div', 'pin-error', error || '')
+      box.appendChild(dots)
+      box.appendChild(message)
+      var keys = el('div', 'pin-keys')
+      var ok
+      var refresh = function() {
+        dots.textContent = code ? code.replace(/./g, '●') : ' '
+        ok.disabled = code.length < 4
+      }
+      var close = function() {
+        document.removeEventListener('keydown', onKey)
+        overlay.remove()
+      }
+      var press = function(k) {
+        if (k === 'del') code = code.slice(0, -1)
+        else if (k === 'ok') {
+          if (code.length < 4) return
+          close()
+          resolve(code)
+          return
+        } else if (code.length < 8) code += k
+        message.textContent = ''
+        refresh()
+      }
+      ;['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].forEach(function(k) {
+        var b = el('button', 'pin-key' + (k === 'ok' ? ' pin-ok' : ''), k === 'del' ? '⌫' : k === 'ok' ? 'OK' : k)
+        b.addEventListener('click', function(e) { e.stopPropagation(); press(k) })
+        if (k === 'ok') ok = b
+        keys.appendChild(b)
       })
-      .catch(function() {
-        flash(node, 'err')
-        updateValues({}) // remet l'affichage sur le dernier état connu
-      })
+      box.appendChild(keys)
+      var cancelButton = el('button', 'pin-cancel', 'Annuler')
+      cancelButton.addEventListener('click', function() { close(); reject() })
+      box.appendChild(cancelButton)
+      overlay.appendChild(box)
+      overlay._cancel = function() { close(); reject() }
+      var onKey = function(e) {
+        if (/^[0-9]$/.test(e.key)) press(e.key)
+        else if (e.key === 'Backspace') press('del')
+        else if (e.key === 'Enter') press('ok')
+        else if (e.key === 'Escape') overlay._cancel()
+      }
+      document.addEventListener('keydown', onKey)
+      if (error) box.classList.add('shake')
+      refresh()
+      app.appendChild(overlay)
+    })
+  }
+
+  function toast(text) {
+    var t = el('div', 'toast', text)
+    app.appendChild(t)
+    setTimeout(function() { t.remove() }, 4000)
   }
 
   function flash(node, cls) {
@@ -1540,8 +1638,12 @@
   function armIdle() {
     clearTimeout(idleTimer)
     idleTimer = setTimeout(function() {
+      state.pin = { value: '', until: 0 }
       var overlay = app.querySelector('.overlay')
-      if (overlay) overlay.remove()
+      if (overlay) {
+        if (overlay._cancel) overlay._cancel()
+        else overlay.remove()
+      }
       if (state.config && state.config.showRooms && hasHome() && state.room !== 'home') {
         state.room = 'home'
         render()

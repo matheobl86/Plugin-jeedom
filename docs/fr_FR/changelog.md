@@ -1,5 +1,10 @@
 # Changelog RPi Dash
 
+## 1.5.0
+
+- Code de sécurité par écran (pavé numérique) pour les équipements cochés « Code », vérifié par Jeedom ;
+  activer l'alarme et verrouiller restent libres ; mémorisé 30 s ; blocage 5 min après 5 erreurs.
+
 ## 1.4.0
 
 - Présence : une carte par personne avec avatar et bandeau coloré par état ; états lus dans les actions du virtuel.

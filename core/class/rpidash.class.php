@@ -204,6 +204,69 @@ class rpidash extends eqLogic {
         }
         $refresh = (float) $this->getConfiguration('refresh');
         $this->setConfiguration('refresh', max(1, min(60, $refresh)));
+
+        // Code de sécurité : seul son empreinte est conservée
+        if ($this->getConfiguration('pinClear', 0) == 1) {
+            $this->setConfiguration('pinHash', '');
+        }
+        $newPin = trim((string) $this->getConfiguration('pinNew', ''));
+        if ($newPin !== '') {
+            if (!preg_match('/^[0-9]{4,8}$/', $newPin)) {
+                throw new Exception(__('Le code doit contenir de 4 à 8 chiffres', __FILE__));
+            }
+            $this->setConfiguration('pinHash', password_hash($newPin, PASSWORD_DEFAULT));
+        }
+        $this->setConfiguration('pinNew', '');
+        $this->setConfiguration('pinClear', 0);
+    }
+
+    public function hasPin() {
+        return $this->getConfiguration('pinHash', '') != '';
+    }
+
+    /**
+     * Actions qui ne demandent jamais le code : mettre en sécurité doit rester immédiat.
+     */
+    public static function isSafeAction($cmd) {
+        return in_array(strtoupper(self::genericType($cmd)), array('ALARM_ARMED', 'LOCK_CLOSE', 'GB_CLOSE'))
+            || preg_match('/^\s*(verrouiller|lock)\s*$/iu', $cmd->getName());
+    }
+
+    public function cmdNeedsPin($cmd) {
+        if (!$this->hasPin() || self::isSafeAction($cmd)) {
+            return false;
+        }
+        $options = $this->getEquipmentOptions();
+        $eqLogicId = (int) $cmd->getEqLogic_id();
+        return isset($options[$eqLogicId]) && $options[$eqLogicId]['pin'];
+    }
+
+    /**
+     * Vérifie le code ; 5 erreurs bloquent l'écran 5 minutes.
+     * Retourne [ok, raison (required|invalid|locked), secondes restantes].
+     */
+    public function checkPin($pin) {
+        $key = 'rpidash::pinFailures::' . $this->getId();
+        $failures = cache::byKey($key)->getValue(array('count' => 0, 'until' => 0));
+        if (!is_array($failures)) {
+            $failures = array('count' => 0, 'until' => 0);
+        }
+        if ($failures['until'] > time()) {
+            return array(false, 'locked', $failures['until'] - time());
+        }
+        if ($pin === '') {
+            return array(false, 'required', 0);
+        }
+        if (password_verify($pin, $this->getConfiguration('pinHash', ''))) {
+            cache::set($key, array('count' => 0, 'until' => 0));
+            return array(true, '', 0);
+        }
+        $failures['count']++;
+        if ($failures['count'] >= 5) {
+            $failures = array('count' => 0, 'until' => time() + 300);
+        }
+        cache::set($key, $failures, 3600);
+        return $failures['until'] > time() ? array(false, 'locked', $failures['until'] - time()) : array(false, 'invalid', 0);
     }
 
     public function getSelectedEquipmentIds() {
@@ -212,7 +275,7 @@ class rpidash extends eqLogic {
     }
 
     /**
-     * Réglages par équipement, stockés sous la forme "id:widget:taille:accueil,…".
+     * Réglages par équipement, stockés sous la forme "id:widget:taille:accueil:code,…".
      */
     public function getEquipmentOptions() {
         $widgets = self::getWidgetTypes();
@@ -226,6 +289,7 @@ class rpidash extends eqLogic {
                 'widget' => isset($widgets[$parts[1]]) ? $parts[1] : 'auto',
                 'size' => isset($parts[2]) ? max(0, min(2, (int) $parts[2])) : 0,
                 'home' => isset($parts[3]) && $parts[3] == '1',
+                'pin' => isset($parts[4]) && $parts[4] == '1',
             );
         }
         return $options;
@@ -281,6 +345,9 @@ class rpidash extends eqLogic {
                     if (isset($states[$cmd->getId()])) {
                         $data['states'] = $states[$cmd->getId()];
                     }
+                    if ($cmd->getType() == 'action' && $this->cmdNeedsPin($cmd)) {
+                        $data['needsPin'] = true;
+                    }
                     $cmds[] = $data;
                 }
             }
@@ -296,7 +363,7 @@ class rpidash extends eqLogic {
                     'eqLogics' => array(),
                 );
             }
-            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 0, 'home' => false);
+            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 0, 'home' => false, 'pin' => false);
             $widget = $option['widget'] == 'auto' ? self::detectWidget($eqLogic) : $option['widget'];
             $groups[$objectId]['eqLogics'][] = array(
                 'id' => (int) $eqLogic->getId(),
@@ -305,6 +372,7 @@ class rpidash extends eqLogic {
                 'widget' => $widget,
                 'size' => $option['size'] > 0 ? $option['size'] : self::defaultSize($widget),
                 'home' => $option['home'],
+                'protected' => $option['pin'] && $this->hasPin(),
                 'camera' => $camera,
                 'cmds' => $cmds,
             );
@@ -480,7 +548,7 @@ class rpidash extends eqLogic {
         }
         return array(
             'plugin' => 'rpidash',
-            'version' => '1.4.0',
+            'version' => '1.5.0',
             'jeedom' => method_exists('jeedom', 'version') ? jeedom::version() : '',
             'screen' => $this->getScreenConfig(),
             'equipments' => $equipments,

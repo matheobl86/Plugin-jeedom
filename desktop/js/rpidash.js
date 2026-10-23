@@ -31,7 +31,7 @@ function printEqLogic(_eqLogic) {
   var options = {}
   String((_eqLogic.configuration && _eqLogic.configuration.widgets) || '').split(',').forEach(function(entry) {
     var parts = entry.split(':')
-    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '0', home: parts[3] == '1' }
+    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '0', home: parts[3] == '1', pin: parts[4] == '1' }
   })
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     el.value = options[el.dataset.id] ? options[el.dataset.id].widget : 'auto'
@@ -43,6 +43,13 @@ function printEqLogic(_eqLogic) {
   document.querySelectorAll('.rpidashEqHome').forEach(function(el) {
     el.checked = !!(options[el.dataset.id] && options[el.dataset.id].home)
   })
+  document.querySelectorAll('.rpidashEqPin').forEach(function(el) {
+    el.checked = !!(options[el.dataset.id] && options[el.dataset.id].pin)
+  })
+  var hasPin = !!(_eqLogic.configuration && _eqLogic.configuration.pinHash)
+  document.getElementById('span_rpidashPinStatus').textContent = hasPin
+    ? '{{Un code est défini. Cochez la colonne « Code » des équipements à protéger.}}'
+    : '{{Aucun code : les équipements cochés « Code » ne sont pas protégés.}}'
   document.getElementById('ta_rpidashDiagnostic').style.display = 'none'
   document.getElementById('bt_rpidashDiagnosticCopy').style.display = 'none'
   rpidashToggleCustomSize()
@@ -55,12 +62,13 @@ function saveEqLogic(_eqLogic) {
   document.querySelectorAll('.rpidashEqSelect:checked').forEach(function(el) {
     ids.push(el.dataset.id)
   })
-  // On ne garde que les réglages différents du défaut (Automatique, taille auto, hors accueil)
+  // On ne garde que les réglages différents du défaut (Automatique, taille auto, hors accueil, sans code)
   var widgets = []
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     var size = document.querySelector('.rpidashEqSize[data-id="' + el.dataset.id + '"]').value
     var home = document.querySelector('.rpidashEqHome[data-id="' + el.dataset.id + '"]').checked ? '1' : '0'
-    if (el.value != 'auto' || size != '0' || home == '1') widgets.push(el.dataset.id + ':' + el.value + ':' + size + ':' + home)
+    var pin = document.querySelector('.rpidashEqPin[data-id="' + el.dataset.id + '"]').checked ? '1' : '0'
+    if (el.value != 'auto' || size != '0' || home == '1' || pin == '1') widgets.push([el.dataset.id, el.value, size, home, pin].join(':'))
   })
   _eqLogic.configuration = _eqLogic.configuration || {}
   _eqLogic.configuration.equipments = ids.join(',')
