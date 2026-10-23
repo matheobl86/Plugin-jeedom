@@ -64,7 +64,7 @@ html, body {
 #grid {
   flex: 1; overflow-y: auto; padding: 0 var(--gap) var(--gap);
   display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  gap: var(--gap); align-content: start;
+  gap: var(--gap); align-content: start; grid-auto-flow: row dense;
   -webkit-overflow-scrolling: touch;
 }
 .message { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 2em; }
@@ -180,3 +180,100 @@ select {
 .detector .ico { width: 1.8em; height: 1.8em; }
 .detector.active { color: var(--accent); }
 .detector.alert { background: rgba(239, 68, 68, .2); color: var(--danger); animation: blink 1.2s infinite; }
+
+/* Badges d'en-tête (batterie) */
+.head-badge { display: inline-flex; align-items: center; gap: .2em; font-size: .75em; color: var(--muted); white-space: nowrap; }
+.head-badge .ico { width: 1.2em; height: 1.2em; }
+.head-badge.warn { color: var(--danger); font-weight: 700; }
+
+.subline { display: flex; align-items: center; gap: .4em; color: var(--muted); font-size: .9em; }
+.subline .ico { width: 1.1em; height: 1.1em; }
+.subline b { color: var(--text); }
+.badge.cool { background: #0ea5e9; }
+
+/* Interrupteurs secondaires avec icône */
+.toggle .ico { width: 1.3em; height: 1.3em; margin-right: .4em; color: var(--muted); }
+.toggle.on .ico { color: var(--on); }
+.toggle-label { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toggle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9em, 1fr)); gap: 6px; }
+.toggle-grid .toggle { min-height: 2.8em; padding: .4em .6em; font-size: .9em; }
+.toggle-grid .toggle .switch { width: 2.2em; height: 1.3em; }
+.toggle-grid .toggle .switch::after { width: .9em; height: .9em; }
+.toggle-grid .toggle.on .switch::after { left: 1.1em; }
+
+/* Capteurs : valeur principale, tendance, min/max, pastilles */
+.value-line { display: flex; align-items: baseline; gap: .3em; }
+.trend { font-size: 1.4em; color: var(--accent); font-weight: 700; }
+.chip .trend { font-size: 1em; margin-left: auto; }
+.minmax { color: var(--muted); font-size: .9em; white-space: nowrap; }
+.minmax b { color: var(--text); }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5em, 1fr)); gap: 6px; }
+.chip { display: flex; align-items: center; gap: .5em; background: var(--panel-2); border-radius: 10px; padding: .45em .6em; min-width: 0; }
+.chip > .ico { width: 1.4em; height: 1.4em; color: var(--accent); }
+.chip-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.chip-text b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip-text b small { font-weight: 400; color: var(--muted); margin-left: .15em; font-size: .8em; }
+.chip-text > small { color: var(--muted); font-size: .75em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wind-dir { width: 1.2em; height: 1.2em; margin-left: auto; color: var(--muted); transition: transform .4s; }
+
+/* Météo */
+.wx-now { display: flex; align-items: center; gap: .8em; }
+.wx-icon { width: 3.4em; height: 3.4em; color: #facc15; }
+.wx-main { flex: 1; min-width: 0; }
+.wx-cond { color: var(--muted); font-size: .9em; }
+.wx-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(4.2em, 1fr)); gap: 6px; }
+.wx-day { display: flex; flex-direction: column; align-items: center; gap: .2em; background: var(--panel-2); border-radius: 10px; padding: .45em .2em; }
+.wx-day-name { font-size: .8em; color: var(--muted); }
+.wx-day .ico { width: 1.8em; height: 1.8em; color: #facc15; }
+.wx-day-temps { display: flex; gap: .4em; align-items: baseline; font-variant-numeric: tabular-nums; }
+.wx-day-temps small { color: var(--muted); }
+.wx-day-temps b small, .wx-day-temps small small { display: none; }
+.minmax b small { display: none; }
+
+/* Caméra */
+.camera { position: relative; border-radius: 10px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; cursor: pointer; }
+.camera img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.camera-fail { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: var(--muted); }
+.camera.failed .camera-fail { display: flex; }
+.camera.failed img { visibility: hidden; }
+.overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, .92); z-index: 10; display: flex; align-items: center; justify-content: center; }
+.overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.overlay-title { position: absolute; top: .6em; left: .8em; color: #fff; font-weight: 700; }
+
+/* Ouvrants en liste */
+.open-list { display: flex; flex-direction: column; gap: 4px; }
+.open-item { display: flex; align-items: center; gap: .5em; padding: .3em .2em; border-bottom: 1px solid var(--panel-2); }
+.open-item:last-child { border-bottom: 0; }
+.open-item .ico { width: 1.2em; height: 1.2em; color: var(--muted); }
+.open-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.open-state { font-weight: 600; color: var(--muted); }
+.open-item.is-open .open-state, .open-item.is-open .ico { color: #f97316; }
+.detector.warn { color: #f97316; background: rgba(249, 115, 22, .15); }
+.detector.notify { color: #fff; background: var(--accent); }
+
+/* Portail, robot */
+.big-actions .btn { display: flex; flex-direction: column; align-items: center; gap: .2em; min-height: 3.6em; }
+.big-actions .btn .ico { width: 1.5em; height: 1.5em; }
+.btn .ico + * { margin-left: .3em; }
+.btn > .ico { margin-right: .3em; }
+.big-actions .btn > .ico { margin-right: 0; }
+.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6em, 1fr)); }
+.rooms-grid .btn { min-height: 2.4em; font-size: .85em; }
+
+/* Poubelles */
+.bins { display: flex; gap: 8px; }
+.bin { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2em; padding: .5em .3em; border-radius: 12px; background: var(--panel-2); opacity: .45; }
+.bin .ico { width: 2em; height: 2em; }
+.bin-name { font-weight: 600; }
+.bin-state { font-size: .8em; color: var(--muted); }
+.bin.out { opacity: 1; box-shadow: inset 0 0 0 2px currentColor; }
+.bin.out .bin-state { color: var(--text); font-weight: 700; }
+
+/* Présence */
+.people { display: flex; flex-direction: column; gap: 6px; }
+.person { display: flex; align-items: center; gap: .6em; }
+.avatar { width: 2.2em; height: 2.2em; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+.person-text { display: flex; flex-direction: column; line-height: 1.2; }
+.person-text small { color: var(--muted); }
+
+.toggle-grid .toggle { min-width: 0; overflow: hidden; }

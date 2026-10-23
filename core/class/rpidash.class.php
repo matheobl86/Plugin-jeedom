@@ -54,50 +54,129 @@ class rpidash extends eqLogic {
             'shutter' => __('Volet / store', __FILE__),
             'thermostat' => __('Thermostat / chauffage', __FILE__),
             'sensor' => __('Capteur (valeurs)', __FILE__),
-            'detector' => __('Détecteur (ouverture, mouvement, fumée…)', __FILE__),
+            'detector' => __('Détecteur / ouvrants (ouverture, mouvement, fumée…)', __FILE__),
             'lock' => __('Serrure', __FILE__),
             'alarm' => __('Alarme', __FILE__),
+            'weather' => __('Météo', __FILE__),
+            'camera' => __('Caméra', __FILE__),
+            'gate' => __('Portail / garage', __FILE__),
+            'spa' => __('Spa / piscine', __FILE__),
+            'mailbox' => __('Boîte aux lettres', __FILE__),
+            'trash' => __('Poubelles', __FILE__),
+            'vacuum' => __('Robot aspirateur', __FILE__),
+            'people' => __('Présence des personnes', __FILE__),
             'generic' => __('Générique (toutes les commandes)', __FILE__),
         );
     }
 
     /**
-     * Devine le widget le plus adapté à un équipement, d'après les types génériques
-     * de ses commandes puis sa catégorie Jeedom.
+     * Taille de tuile par défaut (en colonnes) quand l'utilisateur n'en a pas choisi.
+     */
+    public static function defaultSize($widget) {
+        return in_array($widget, array('weather', 'camera', 'vacuum', 'spa')) ? 2 : 1;
+    }
+
+    /**
+     * Commande "Rafraîchir" présente sur presque tous les équipements : inutile sur l'écran.
+     */
+    public static function isRefreshCmd($cmd) {
+        return $cmd->getType() == 'action'
+            && (strtolower($cmd->getLogicalId()) == 'refresh' || preg_match('/^\s*(rafra[iî]chir|refresh)\s*$/iu', $cmd->getName()));
+    }
+
+    /**
+     * Devine le widget le plus adapté à un équipement, d'après son plugin, les types génériques
+     * de ses commandes, son nom puis sa catégorie Jeedom.
      */
     public static function detectWidget($eqLogic) {
+        $plugin = strtolower($eqLogic->getEqType_name());
+        $name = $eqLogic->getName();
         $types = array();
+        $actionNames = array();
+        $infoNames = array();
         $hasAction = false;
         $hasNumeric = false;
         $hasBinary = false;
         foreach ($eqLogic->getCmd() as $cmd) {
+            if (self::isRefreshCmd($cmd)) {
+                continue;
+            }
             $genericType = strtoupper(self::genericType($cmd));
             if ($genericType != '') {
                 $types[] = $genericType;
             }
             if ($cmd->getType() == 'action') {
                 $hasAction = true;
-            } elseif ($cmd->getSubType() == 'numeric') {
-                $hasNumeric = true;
-            } elseif ($cmd->getSubType() == 'binary') {
-                $hasBinary = true;
+                $actionNames[] = $cmd->getName();
+            } else {
+                $infoNames[] = $cmd->getName();
+                if ($cmd->getSubType() == 'numeric') {
+                    $hasNumeric = true;
+                } elseif ($cmd->getSubType() == 'binary') {
+                    $hasBinary = true;
+                }
             }
         }
-        $byType = array(
-            '/^(THERMOSTAT_|HEATING_)/' => 'thermostat',
-            '/^FLAP_/' => 'shutter',
-            '/^LIGHT_/' => 'light',
-            '/^LOCK_/' => 'lock',
-            '/^ALARM_/' => 'alarm',
-            '/^ENERGY_(STATE|ON|OFF)$/' => 'plug',
-            '/^(OPENING|OPENING_WINDOW|PRESENCE|SMOKE|FLOOD|GARAGE_STATE|GATE_STATE|BARRIER_STATE)$/' => 'detector',
-        );
-        foreach ($byType as $regex => $widget) {
-            if (count(preg_grep($regex, $types)) > 0) {
-                return $widget;
-            }
+        $hasType = function ($regex) use ($types) {
+            return count(preg_grep($regex, $types)) > 0;
+        };
+        $nameIs = function ($regex) use ($name) {
+            return preg_match($regex . 'iu', $name) === 1;
+        };
+        $lightName = '/lumi[eèé]re|lampe|led\b|plafonn?ier|spot|applique|[ée]clairage|ampoule|guirlande/';
+
+        if ($plugin == 'weather' || $hasType('/^WEATHER_/')) {
+            return 'weather';
+        }
+        if ($plugin == 'camera' || $hasType('/^CAMERA_/')) {
+            return 'camera';
+        }
+        if ($hasType('/^THERMOSTAT_/')) {
+            return 'thermostat';
+        }
+        if ($hasType('/^FLAP_/')) {
+            return 'shutter';
+        }
+        if ($hasType('/^LOCK_/') || $plugin == 'nuki' || count(preg_grep('/^(d[ée])?verrouiller$/iu', $actionNames)) > 0) {
+            return 'lock';
+        }
+        if ($hasType('/^ALARM_/')) {
+            return 'alarm';
+        }
+        if ($hasType('/^GB_/')) {
+            return 'gate';
+        }
+        if ($nameIs('/spa\b|jacuzzi|piscine/')) {
+            return 'spa';
+        }
+        if ($nameIs('/bo[iî]te aux lettres|mailbox|courrier/')) {
+            return 'mailbox';
+        }
+        if ($nameIs('/poubelle|d[ée]chet/')) {
+            return 'trash';
+        }
+        if ($nameIs('/robot|aspirateur|vacuum|roborock/') || in_array($plugin, array('roborock', 'xiaomivacuum', 'neato'))) {
+            return 'vacuum';
+        }
+        if (count(preg_grep('/^statut\s+\S/iu', $infoNames)) > 0) {
+            return 'people';
+        }
+        if ($hasType('/^HEATING_/') || ($hasAction && $nameIs('/chauffage|radiateur|convecteur|heater/'))) {
+            return 'thermostat';
+        }
+        if ($hasType('/^LIGHT_/') || ($hasType('/^ENERGY_/') && $nameIs($lightName))) {
+            return 'light';
+        }
+        if ($hasType('/^ENERGY_(STATE|ON|OFF)$/')) {
+            return 'plug';
+        }
+        if ($hasType('/^(OPENING|OPENING_WINDOW|PRESENCE|SMOKE|FLOOD|GARAGE_STATE|GATE_STATE|BARRIER_STATE)$/')) {
+            return 'detector';
         }
         if ($hasAction) {
+            if ($nameIs($lightName)) {
+                return 'light';
+            }
             $byCategory = array('light' => 'light', 'heating' => 'thermostat', 'opening' => 'shutter', 'energy' => 'plug');
             foreach ($byCategory as $category => $widget) {
                 if ($eqLogic->getCategory($category, 0) == 1) {
@@ -145,7 +224,7 @@ class rpidash extends eqLogic {
             }
             $options[(int) $parts[0]] = array(
                 'widget' => isset($widgets[$parts[1]]) ? $parts[1] : 'auto',
-                'size' => isset($parts[2]) ? max(1, min(2, (int) $parts[2])) : 1,
+                'size' => isset($parts[2]) ? max(0, min(2, (int) $parts[2])) : 0,
             );
         }
         return $options;
@@ -190,10 +269,17 @@ class rpidash extends eqLogic {
                 continue;
             }
             $cmds = array();
+            $camera = '';
             foreach ($eqLogic->getCmd() as $cmd) {
-                if ($cmd->getIsVisible() == 1) {
+                if (strtoupper(self::genericType($cmd)) == 'CAMERA_URL') {
+                    $camera = (string) self::cmdValue($cmd);
+                }
+                if ($cmd->getIsVisible() == 1 && !self::isRefreshCmd($cmd)) {
                     $cmds[] = self::formatCmd($cmd);
                 }
+            }
+            if (count($cmds) == 0 && $camera == '') {
+                continue;
             }
             $objectId = (int) $eqLogic->getObject_id();
             if (!isset($groups[$objectId])) {
@@ -204,13 +290,15 @@ class rpidash extends eqLogic {
                     'eqLogics' => array(),
                 );
             }
-            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 1);
+            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 0);
+            $widget = $option['widget'] == 'auto' ? self::detectWidget($eqLogic) : $option['widget'];
             $groups[$objectId]['eqLogics'][] = array(
                 'id' => (int) $eqLogic->getId(),
                 'name' => $eqLogic->getName(),
                 'order' => (int) $eqLogic->getOrder(),
-                'widget' => $option['widget'] == 'auto' ? self::detectWidget($eqLogic) : $option['widget'],
-                'size' => $option['size'],
+                'widget' => $widget,
+                'size' => $option['size'] > 0 ? $option['size'] : self::defaultSize($widget),
+                'camera' => $camera,
                 'cmds' => $cmds,
             );
         }
@@ -337,6 +425,10 @@ class rpidash extends eqLogic {
                 );
                 if ($cmd->getType() == 'info') {
                     $line['value'] = self::cmdValue($cmd);
+                    if (is_string($line['value'])) {
+                        // Ne jamais exposer de clé (ex. URL de snapshot des caméras)
+                        $line['value'] = preg_replace('/(apikey|api_key|token|password|pwd)=[^&\\s"]*/i', '$1=***', $line['value']);
+                    }
                     $line['unit'] = $cmd->getUnite();
                 } elseif (self::linkedInfoId($cmd) > 0) {
                     $line['linked'] = self::linkedInfoId($cmd);
@@ -357,7 +449,7 @@ class rpidash extends eqLogic {
         }
         return array(
             'plugin' => 'rpidash',
-            'version' => '1.1.0',
+            'version' => '1.2.0',
             'jeedom' => method_exists('jeedom', 'version') ? jeedom::version() : '',
             'screen' => $this->getScreenConfig(),
             'equipments' => $equipments,
@@ -375,9 +467,8 @@ class rpidash extends eqLogic {
             return null;
         }
         if ($cmd->getSubType() == 'binary') {
-            // Respecte l'option "Inverser" de la commande dans Jeedom
-            $value = (int) (bool) $value;
-            return $cmd->getDisplay('invertBinary', 0) == 1 ? 1 - $value : $value;
+            // Valeur brute de l'équipement : l'option "Inverser" de Jeedom ne concerne que ses propres widgets
+            return (int) (bool) $value;
         }
         if ($cmd->getSubType() == 'numeric' && is_numeric($value)) {
             return $value + 0;

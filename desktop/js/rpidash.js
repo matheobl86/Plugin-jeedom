@@ -31,14 +31,14 @@ function printEqLogic(_eqLogic) {
   var options = {}
   String((_eqLogic.configuration && _eqLogic.configuration.widgets) || '').split(',').forEach(function(entry) {
     var parts = entry.split(':')
-    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '1' }
+    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '0' }
   })
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     el.value = options[el.dataset.id] ? options[el.dataset.id].widget : 'auto'
     if (el.value == '') el.value = 'auto'
   })
   document.querySelectorAll('.rpidashEqSize').forEach(function(el) {
-    el.value = options[el.dataset.id] ? options[el.dataset.id].size : '1'
+    el.value = options[el.dataset.id] ? options[el.dataset.id].size : '0'
   })
   document.getElementById('ta_rpidashDiagnostic').style.display = 'none'
   document.getElementById('bt_rpidashDiagnosticCopy').style.display = 'none'
@@ -52,11 +52,11 @@ function saveEqLogic(_eqLogic) {
   document.querySelectorAll('.rpidashEqSelect:checked').forEach(function(el) {
     ids.push(el.dataset.id)
   })
-  // On ne garde que les réglages différents du défaut (Automatique, tuile normale)
+  // On ne garde que les réglages différents du défaut (Automatique, taille auto)
   var widgets = []
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     var size = document.querySelector('.rpidashEqSize[data-id="' + el.dataset.id + '"]').value
-    if (el.value != 'auto' || size != '1') widgets.push(el.dataset.id + ':' + el.value + ':' + size)
+    if (el.value != 'auto' || size != '0') widgets.push(el.dataset.id + ':' + el.value + ':' + size)
   })
   _eqLogic.configuration = _eqLogic.configuration || {}
   _eqLogic.configuration.equipments = ids.join(',')

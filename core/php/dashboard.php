@@ -39,6 +39,8 @@ if (!is_object($eqLogic) || $eqLogic->getEqType_name() != 'rpidash') {
 $assets = __DIR__ . '/../../dashboard/';
 $boot = array(
     'apiUrl' => 'api.php',
+    // Racine de Jeedom vue depuis cette page (images des caméras…)
+    'root' => '../../../../',
     'apikey' => $apikey,
     'id' => (int) $eqLogic->getId(),
 );

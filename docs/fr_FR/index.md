@@ -50,12 +50,23 @@ Cochez les équipements à afficher et choisissez pour chacun :
 | Volet / store | `FLAP_*` (ou catégorie Ouvrant avec actions) | dessin du volet + position, boutons ▲ ■ ▼, curseur |
 | Thermostat / chauffage | `THERMOSTAT_*`, `HEATING_*` (ou catégorie Chauffage) | température, état de chauffe, consigne − / +, boutons de mode |
 | Capteur | uniquement des infos numériques | grande valeur (température en priorité) avec icône adaptée |
-| Détecteur | `OPENING`, `PRESENCE`, `SMOKE`, `FLOOD`, `GARAGE_STATE`… ou infos binaires seules | ouvert/fermé, mouvement, alerte fumée/fuite (clignote en rouge) |
-| Serrure | `LOCK_*` | verrouillé/déverrouillé (confirmation avant d'ouvrir) |
+| Détecteur / ouvrants | `OPENING`, `PRESENCE`, `SMOKE`, `FLOOD`, `GARAGE_STATE`… ou infos binaires seules | ouvert/fermé, mouvement, alerte fumée/fuite (clignote en rouge) ; liste avec résumé si l'équipement regroupe plusieurs ouvrants |
+| Serrure | `LOCK_*`, plugin Nuki, actions « Verrouiller / Déverrouiller » | état lisible (« Verrouillée »…), confirmation avant d'ouvrir |
 | Alarme | `ALARM_*` | activée/désactivée (confirmation avant de désactiver), déclenchement, modes |
+| Météo | plugin Météo ou types `WEATHER_*` | condition avec icône, température, min/max, humidité, vent (direction), pluie, pression, lever/coucher, prévisions sur 6 jours |
+| Caméra | plugin Caméra ou types `CAMERA_*` | image rafraîchie toutes les 3 s, plein écran au toucher, boutons capture/arrêt |
+| Portail / garage | types `GB_*` | boutons Ouvrir / Fermer / Piéton, état « en cours » |
+| Spa / piscine | nom contenant « spa », « jacuzzi », « piscine » | température demandée − / +, interrupteurs Marche, Bulles, Filtration, Chauffe |
+| Boîte aux lettres | nom contenant « boîte aux lettres » | Vide / Courrier / Colis |
+| Poubelles | nom contenant « poubelle » | une poubelle colorée par info binaire (« À sortir ») |
+| Robot aspirateur | nom contenant « robot » ou « aspirateur » | dernier ordre, Base / Charge, une touche par pièce |
+| Présence des personnes | infos nommées « statut Prénom » | une ligne par personne |
 | Générique | le reste | toutes les commandes : valeurs, interrupteurs On/Off, boutons, curseurs, listes |
 
-Les commandes qu'un widget n'utilise pas sont affichées en dessous, rien n'est perdu.
+Les commandes qu'un widget n'utilise pas sont affichées en dessous (sauf pour la météo, qui a des dizaines
+de commandes horaires). Les boutons « Rafraîchir » sont masqués, les batteries s'affichent en petit badge
+dans l'en-tête, et les équipements sans commande visible ne sont pas affichés.
+La météo, la caméra, le robot et le spa occupent par défaut une tuile large.
 Seules les commandes **visibles** des équipements **actifs** apparaissent.
 
 Conseils :
@@ -63,8 +74,10 @@ Conseils :
 - la détection repose surtout sur les **types génériques** : renseignez-les sur les commandes
   (Configuration avancée de l'équipement > Commandes, ou Outils > Types génériques) ;
 - un couple On/Off devient un interrupteur s'il a une **valeur de retour** pointant vers l'info d'état ;
-- si un état binaire est à l'envers (ex. porte affichée ouverte alors qu'elle est fermée), activez
-  l'option **Inverser** de la commande info dans Jeedom ; pour les ouvertures, la convention Jeedom est `1 = fermé`.
+- l'écran utilise la **valeur brute** des infos binaires (l'option « Inverser » de Jeedom ne concerne que
+  ses propres widgets) ; pour les ouvertures, la convention est `1 = fermé` ;
+- les libellés des codes de la boîte aux lettres et de la présence se règlent en haut de `dashboard/rpidash.js`
+  (`MAILBOX_LABELS`, `PEOPLE_LABELS`).
 
 ### Diagnostic
 

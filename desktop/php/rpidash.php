@@ -236,7 +236,7 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
                   }
                   $rows .= '</select></td>';
                   $rows .= '<td style="width:130px;"><select class="form-control input-sm rpidashEqSize" data-id="' . $eq->getId() . '">';
-                  $rows .= '<option value="1">{{Tuile normale}}</option><option value="2">{{Tuile large}}</option>';
+                  $rows .= '<option value="0">{{Taille auto}}</option><option value="1">{{Tuile normale}}</option><option value="2">{{Tuile large}}</option>';
                   $rows .= '</select></td></tr>';
               }
               if ($rows == '') {
