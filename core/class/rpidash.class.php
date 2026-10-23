@@ -271,12 +271,17 @@ class rpidash extends eqLogic {
             }
             $cmds = array();
             $camera = '';
+            $states = self::infoStates($eqLogic);
             foreach ($eqLogic->getCmd() as $cmd) {
                 if (strtoupper(self::genericType($cmd)) == 'CAMERA_URL') {
                     $camera = (string) self::cmdValue($cmd);
                 }
                 if ($cmd->getIsVisible() == 1 && !self::isRefreshCmd($cmd)) {
-                    $cmds[] = self::formatCmd($cmd);
+                    $data = self::formatCmd($cmd);
+                    if (isset($states[$cmd->getId()])) {
+                        $data['states'] = $states[$cmd->getId()];
+                    }
+                    $cmds[] = $data;
                 }
             }
             if (count($cmds) == 0 && $camera == '') {
@@ -401,6 +406,27 @@ class rpidash extends eqLogic {
         return $data;
     }
 
+    /**
+     * États possibles d'une info, déduits des actions (même masquées) qui lui donnent une valeur fixe :
+     * ex. virtuel "pre Will" -> statut Will = 1. Retourne [infoId => [[value, label], …]].
+     */
+    private static function infoStates($eqLogic) {
+        $states = array();
+        foreach ($eqLogic->getCmd('action') as $cmd) {
+            $linkedId = self::linkedInfoId($cmd);
+            $value = $cmd->getConfiguration('value', '');
+            if ($linkedId <= 0 || $cmd->getSubType() != 'other' || !is_scalar($value) || trim((string) $value) === '' || self::isRefreshCmd($cmd)) {
+                continue;
+            }
+            // Une valeur calculée (#…#, formule) n'est pas un état fixe
+            if (preg_match('/[#()]/', (string) $value)) {
+                continue;
+            }
+            $states[$linkedId][] = array('value' => trim((string) $value), 'label' => $cmd->getName());
+        }
+        return $states;
+    }
+
     private static function genericType($cmd) {
         return method_exists($cmd, 'getGeneric_type') ? (string) $cmd->getGeneric_type() : '';
     }
@@ -434,6 +460,9 @@ class rpidash extends eqLogic {
                     $line['unit'] = $cmd->getUnite();
                 } elseif (self::linkedInfoId($cmd) > 0) {
                     $line['linked'] = self::linkedInfoId($cmd);
+                    if (is_scalar($cmd->getConfiguration('value', '')) && $cmd->getConfiguration('value', '') !== '') {
+                        $line['setValue'] = $cmd->getConfiguration('value');
+                    }
                 }
                 $cmds[] = $line;
             }
@@ -451,7 +480,7 @@ class rpidash extends eqLogic {
         }
         return array(
             'plugin' => 'rpidash',
-            'version' => '1.3.0',
+            'version' => '1.4.0',
             'jeedom' => method_exists('jeedom', 'version') ? jeedom::version() : '',
             'screen' => $this->getScreenConfig(),
             'equipments' => $equipments,

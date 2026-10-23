@@ -62,7 +62,7 @@ Cochez les équipements à afficher et choisissez pour chacun :
 | Boîte aux lettres | nom contenant « boîte aux lettres » | Vide / Courrier / Colis |
 | Poubelles | nom contenant « poubelle » | une poubelle colorée par info binaire (« À sortir ») |
 | Robot aspirateur | nom contenant « robot » ou « aspirateur » | dernier ordre, Base / Charge, une touche par pièce |
-| Présence des personnes | infos nommées « statut Prénom » | une ligne par personne |
+| Présence des personnes | infos nommées « statut Prénom » | une carte par personne : avatar + bandeau coloré selon l'état |
 | Générique | le reste | toutes les commandes : valeurs, interrupteurs On/Off, boutons, curseurs, listes |
 
 Les commandes qu'un widget n'utilise pas sont affichées en dessous (sauf pour la météo, qui a des dizaines
@@ -78,8 +78,12 @@ Conseils :
 - un couple On/Off devient un interrupteur s'il a une **valeur de retour** pointant vers l'info d'état ;
 - l'écran utilise la **valeur brute** des infos binaires (l'option « Inverser » de Jeedom ne concerne que
   ses propres widgets) ; pour les ouvertures, la convention est `1 = fermé` ;
-- les libellés des codes de la boîte aux lettres et de la présence se règlent en haut de `dashboard/rpidash.js`
-  (`MAILBOX_LABELS`, `PEOPLE_LABELS`).
+- **présence** : les états sont lus dans les actions du virtuel qui modifient « statut Prénom » (nom + valeur) ;
+  « pre », « abs » et « taf » deviennent « À la maison », « Pas à la maison » et « Au taf », les autres gardent
+  le nom de l'action sans le prénom (renommez l'action dans Jeedom pour changer le texte) ;
+- **avatars** : déposez `prénom.png` (ou `prénom-code.png` pour un état précis) dans `plugins/rpidash/data/avatars/`
+  (Réglages > Système > Éditeur de fichiers, ou SSH) ;
+- les libellés de la boîte aux lettres se règlent en haut de `dashboard/rpidash.js` (`MAILBOX_LABELS`).
 
 ### Diagnostic
 

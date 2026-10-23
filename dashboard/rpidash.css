@@ -269,11 +269,30 @@ select {
 .bin.out { opacity: 1; box-shadow: inset 0 0 0 2px currentColor; }
 .bin.out .bin-state { color: var(--text); font-weight: 700; }
 
-/* Présence */
-.people { display: flex; flex-direction: column; gap: 6px; }
-.person { display: flex; align-items: center; gap: .6em; }
-.avatar { width: 2.2em; height: 2.2em; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
-.person-text { display: flex; flex-direction: column; line-height: 1.2; }
-.person-text small { color: var(--muted); }
+/* Présence : une carte par personne (avatar + bandeau d'état) */
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5em, 1fr)); gap: 8px; }
+.pc-banner { font-size: .8em; }
+.person-card {
+  position: relative; border-radius: 12px; overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #6b6b6b, #3a3a3a); display: flex; flex-direction: column;
+}
+.pc-avatar { aspect-ratio: 1 / 1; display: flex; align-items: flex-end; justify-content: center; }
+.pc-avatar img { width: 100%; height: 100%; object-fit: cover; transition: filter .4s, opacity .4s; }
+.pc-initial {
+  width: 62%; aspect-ratio: 1 / 1; margin: auto; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 2.4em; font-weight: 800; transition: background .4s;
+}
+.pc-name {
+  position: absolute; top: .35em; left: .5em; color: #fff; font-weight: 700; font-size: .85em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+}
+.pc-banner {
+  padding: .35em .3em; text-align: center; color: #fff; text-transform: uppercase; line-height: 1.1;
+  font-family: Georgia, "Times New Roman", serif; font-weight: 900; font-size: .95em; letter-spacing: .02em;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; transition: background .4s;
+}
+.person-card.away .pc-avatar img, .person-card.away .pc-initial { filter: grayscale(1); opacity: .55; }
 
 .toggle-grid .toggle { min-width: 0; overflow: hidden; }
+.pc-avatar { flex: 1; }
+.pc-banner { margin-top: auto; min-height: 2.6em; display: flex; align-items: center; justify-content: center; }

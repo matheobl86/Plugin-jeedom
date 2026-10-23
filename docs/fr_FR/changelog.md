@@ -1,5 +1,10 @@
 # Changelog RPi Dash
 
+## 1.4.0
+
+- Présence : une carte par personne avec avatar et bandeau coloré par état ; états lus dans les actions du virtuel.
+- Le diagnostic indique la valeur envoyée par chaque action.
+
 ## 1.3.0
 
 - Page Accueil : équipements choisis (case « Accueil »), affichée au démarrage, retour automatique après 2 min d'inactivité.

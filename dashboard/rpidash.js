@@ -1339,24 +1339,83 @@
         var m = /^statut\s+(.+)$/i.exec(c.name.trim())
         if (!m) return
         take(ctx, c)
-        var person = el('div', 'person')
-        person.appendChild(el('span', 'avatar', m[1].charAt(0).toUpperCase()))
-        var text = el('div', 'person-text')
-        text.appendChild(el('b', '', m[1]))
-        var st = el('small', '', '—')
-        text.appendChild(st)
-        person.appendChild(text)
-        person.dataset.info = c.id
-        person._update = function(v) {
-          var key = String(v === null || v === undefined ? '' : v).trim()
-          st.textContent = PEOPLE_LABELS[key] || (key === '' ? '—' : 'Statut ' + key)
-        }
-        list.appendChild(person)
+        list.appendChild(renderPerson(m[1], c))
       })
       // Les coordonnées GPS brutes ne sont pas utiles sur l'écran
       ctx.eq.cmds.forEach(function(c) { if (c.type === 'info' && /^position\s/i.test(c.name.trim())) ctx.used[c.id] = true })
       if (list.childNodes.length) ctx.tile.appendChild(list)
     }
+  }
+
+  /* ------------------------------------------------- Présence */
+
+  // Libellé d'un état à partir du nom de l'action qui le déclenche ("pre Will" -> "À la maison")
+  function personStateLabel(actionName, person, key) {
+    var label = actionName ? String(actionName).replace(new RegExp('\\s*\\b' + escapeRegex(person) + '\\b\\s*', 'i'), ' ').trim() : ''
+    var n = normalize(label)
+    if (/^(pre|pres|present|presente|maison)$/.test(n)) return 'À la maison'
+    if (/^(abs|absent|absente|dehors|parti)$/.test(n)) return 'Pas à la maison'
+    if (/^(taf|travail|boulot|job)$/.test(n)) return 'Au taf'
+    if (label) return label.charAt(0).toUpperCase() + label.slice(1)
+    if (PEOPLE_LABELS[key]) return PEOPLE_LABELS[key]
+    return key === '1' ? 'À la maison' : key === '0' ? 'Pas à la maison' : key === '' ? '—' : 'Statut ' + key
+  }
+
+  function personStateColor(label, key) {
+    var n = normalize(label)
+    if (/^a la maison/.test(n)) return '#16a34a'
+    if (/absent|dehors|pas a la maison/.test(n)) return '#64748b'
+    if (/taf|travail|bureau|cabinet/.test(n)) return '#c73b38'
+    if (/animation/.test(n)) return '#ea580c'
+    if (/domicile/.test(n)) return '#2563eb'
+    if (/vacances|voyage/.test(n)) return '#0891b2'
+    return ['#64748b', '#16a34a', '#c73b38', '#2563eb', '#ea580c', '#9333ea', '#0891b2'][Number(key) % 7] || '#7c3aed'
+  }
+
+  // Avatars : plugins/rpidash/data/avatars/<prénom>-<code>.png (par état) ou <prénom>.png
+  var missingImages = {}
+  function setAvatar(img, fallback, candidates) {
+    var src = candidates.filter(function(c) { return !missingImages[c] })[0]
+    if (!src) {
+      img.style.display = 'none'
+      fallback.style.display = ''
+      return
+    }
+    if (img.dataset.src === src) return
+    img.dataset.src = src
+    img.onload = function() { img.style.display = ''; fallback.style.display = 'none' }
+    img.onerror = function() { missingImages[src] = true; img.dataset.src = ''; setAvatar(img, fallback, candidates) }
+    img.src = src
+  }
+
+  function renderPerson(person, info) {
+    var slug = normalize(person).replace(/[^a-z0-9]+/g, '-')
+    var base = BOOT.root + 'plugins/rpidash/data/avatars/' + slug
+    var card = el('div', 'person-card')
+    var avatar = el('div', 'pc-avatar')
+    var img = el('img')
+    img.alt = person
+    img.style.display = 'none'
+    var initial = el('span', 'pc-initial', person.charAt(0).toUpperCase())
+    avatar.appendChild(img)
+    avatar.appendChild(initial)
+    card.appendChild(avatar)
+    card.appendChild(el('div', 'pc-name', person))
+    var banner = el('div', 'pc-banner', '—')
+    card.appendChild(banner)
+    card.dataset.info = info.id
+    card._update = function(v) {
+      var key = String(v === null || v === undefined ? '' : v).trim()
+      var st = (info.states || []).filter(function(s) { return String(s.value) === key })[0]
+      var label = personStateLabel(st ? st.label : '', person, key)
+      var color = personStateColor(label, key)
+      banner.textContent = label
+      banner.style.background = color
+      initial.style.background = color
+      card.classList.toggle('away', /absent|dehors|pas a la maison/.test(normalize(label)))
+      setAvatar(img, initial, [base + '-' + key + '.png', base + '.png'])
+    }
+    return card
   }
 
   // Icône météo d'après le code (WeatherAPI ou OpenWeatherMap), sinon d'après le texte
