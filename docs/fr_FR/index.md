@@ -42,6 +42,8 @@ Cochez les équipements à afficher et choisissez pour chacun :
 
 - **Widget** : *Automatique* (le type détecté est indiqué entre parenthèses) ou un widget imposé ;
 - **Taille** : tuile normale ou **large** (2 colonnes).
+- **Accueil** : l'équipement apparaît sur la page **Accueil**, premier onglet de l'écran, affiché au démarrage.
+  L'écran revient automatiquement à l'accueil après 2 minutes sans être touché.
 
 | Widget | Détecté si… | Affichage |
 |---|---|---|

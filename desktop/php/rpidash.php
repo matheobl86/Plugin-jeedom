@@ -237,13 +237,14 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
                   $rows .= '</select></td>';
                   $rows .= '<td style="width:130px;"><select class="form-control input-sm rpidashEqSize" data-id="' . $eq->getId() . '">';
                   $rows .= '<option value="0">{{Taille auto}}</option><option value="1">{{Tuile normale}}</option><option value="2">{{Tuile large}}</option>';
-                  $rows .= '</select></td></tr>';
+                  $rows .= '</select></td>';
+                  $rows .= '<td style="width:90px;text-align:center;"><input type="checkbox" class="rpidashEqHome" data-id="' . $eq->getId() . '"></td></tr>';
               }
               if ($rows == '') {
                   continue;
               }
               echo '<fieldset class="rpidashGroup"><legend>' . htmlspecialchars($group['name']) . '</legend>';
-              echo '<table class="table table-condensed table-hover"><thead><tr><th>{{Équipement}}</th><th>{{Widget}}</th><th>{{Taille}}</th></tr></thead><tbody>' . $rows . '</tbody></table></fieldset>';
+              echo '<table class="table table-condensed table-hover"><thead><tr><th>{{Équipement}}</th><th>{{Widget}}</th><th>{{Taille}}</th><th style="text-align:center;">{{Accueil}} <sup><i class="fas fa-question-circle tooltips" title="{{Affiché sur la page Accueil}}"></i></sup></th></tr></thead><tbody>' . $rows . '</tbody></table></fieldset>';
           }
           ?>
         </div>

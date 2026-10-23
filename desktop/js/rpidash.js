@@ -31,7 +31,7 @@ function printEqLogic(_eqLogic) {
   var options = {}
   String((_eqLogic.configuration && _eqLogic.configuration.widgets) || '').split(',').forEach(function(entry) {
     var parts = entry.split(':')
-    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '0' }
+    if (parts.length >= 2) options[parts[0]] = { widget: parts[1], size: parts[2] || '0', home: parts[3] == '1' }
   })
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     el.value = options[el.dataset.id] ? options[el.dataset.id].widget : 'auto'
@@ -39,6 +39,9 @@ function printEqLogic(_eqLogic) {
   })
   document.querySelectorAll('.rpidashEqSize').forEach(function(el) {
     el.value = options[el.dataset.id] ? options[el.dataset.id].size : '0'
+  })
+  document.querySelectorAll('.rpidashEqHome').forEach(function(el) {
+    el.checked = !!(options[el.dataset.id] && options[el.dataset.id].home)
   })
   document.getElementById('ta_rpidashDiagnostic').style.display = 'none'
   document.getElementById('bt_rpidashDiagnosticCopy').style.display = 'none'
@@ -52,11 +55,12 @@ function saveEqLogic(_eqLogic) {
   document.querySelectorAll('.rpidashEqSelect:checked').forEach(function(el) {
     ids.push(el.dataset.id)
   })
-  // On ne garde que les réglages différents du défaut (Automatique, taille auto)
+  // On ne garde que les réglages différents du défaut (Automatique, taille auto, hors accueil)
   var widgets = []
   document.querySelectorAll('.rpidashEqWidget').forEach(function(el) {
     var size = document.querySelector('.rpidashEqSize[data-id="' + el.dataset.id + '"]').value
-    if (el.value != 'auto' || size != '0') widgets.push(el.dataset.id + ':' + el.value + ':' + size)
+    var home = document.querySelector('.rpidashEqHome[data-id="' + el.dataset.id + '"]').checked ? '1' : '0'
+    if (el.value != 'auto' || size != '0' || home == '1') widgets.push(el.dataset.id + ':' + el.value + ':' + size + ':' + home)
   })
   _eqLogic.configuration = _eqLogic.configuration || {}
   _eqLogic.configuration.equipments = ids.join(',')

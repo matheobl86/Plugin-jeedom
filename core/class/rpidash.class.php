@@ -212,7 +212,7 @@ class rpidash extends eqLogic {
     }
 
     /**
-     * Réglages par équipement, stockés sous la forme "id:widget:taille,id:widget:taille".
+     * Réglages par équipement, stockés sous la forme "id:widget:taille:accueil,…".
      */
     public function getEquipmentOptions() {
         $widgets = self::getWidgetTypes();
@@ -225,6 +225,7 @@ class rpidash extends eqLogic {
             $options[(int) $parts[0]] = array(
                 'widget' => isset($widgets[$parts[1]]) ? $parts[1] : 'auto',
                 'size' => isset($parts[2]) ? max(0, min(2, (int) $parts[2])) : 0,
+                'home' => isset($parts[3]) && $parts[3] == '1',
             );
         }
         return $options;
@@ -290,7 +291,7 @@ class rpidash extends eqLogic {
                     'eqLogics' => array(),
                 );
             }
-            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 0);
+            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 0, 'home' => false);
             $widget = $option['widget'] == 'auto' ? self::detectWidget($eqLogic) : $option['widget'];
             $groups[$objectId]['eqLogics'][] = array(
                 'id' => (int) $eqLogic->getId(),
@@ -298,6 +299,7 @@ class rpidash extends eqLogic {
                 'order' => (int) $eqLogic->getOrder(),
                 'widget' => $widget,
                 'size' => $option['size'] > 0 ? $option['size'] : self::defaultSize($widget),
+                'home' => $option['home'],
                 'camera' => $camera,
                 'cmds' => $cmds,
             );
@@ -449,7 +451,7 @@ class rpidash extends eqLogic {
         }
         return array(
             'plugin' => 'rpidash',
-            'version' => '1.2.0',
+            'version' => '1.3.0',
             'jeedom' => method_exists('jeedom', 'version') ? jeedom::version() : '',
             'screen' => $this->getScreenConfig(),
             'equipments' => $equipments,

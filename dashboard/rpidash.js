@@ -5,6 +5,7 @@
   var BOOT = window.RPIDASH
   var RELOAD_STRUCTURE_MS = 5 * 60 * 1000
   var CAMERA_REFRESH_MS = 3000
+  var HOME_IDLE_MS = 2 * 60 * 1000 // retour à l'accueil après 2 min sans toucher l'écran
 
   // Libellés des codes de statut (widgets Boîte aux lettres et Présence) : à adapter si besoin
   var MAILBOX_LABELS = { 0: 'Vide', 1: 'Courrier', 2: 'Colis', 3: 'Courrier + colis' }
@@ -53,7 +54,7 @@
   }
 
   function readRoom() {
-    try { return localStorage.getItem('rpidash-room-' + BOOT.id) || 'all' } catch (e) { return 'all' }
+    try { return localStorage.getItem('rpidash-room-' + BOOT.id) || '' } catch (e) { return '' }
   }
 
   function saveRoom(room) {
@@ -151,15 +152,21 @@
 
   /* -------------------------------------------------------- Rendu */
 
+  function hasHome() {
+    return state.objects.some(function(o) { return o.eqLogics.some(function(e) { return e.home }) })
+  }
+
   function render() {
     renderRooms()
     grid.innerHTML = ''
+    var home = state.room === 'home'
     var showAll = !state.config.showRooms || state.room === 'all'
     var count = 0
     state.objects.forEach(function(object) {
-      if (!showAll && String(object.id) !== state.room) return
+      if (!home && !showAll && String(object.id) !== state.room) return
       object.eqLogics.forEach(function(eq) {
-        grid.appendChild(renderEqLogic(eq, showAll && state.config.showRooms ? object.name : ''))
+        if (home && !eq.home) return
+        grid.appendChild(renderEqLogic(eq, (showAll || home) && state.config.showRooms ? object.name : ''))
         count++
       })
     })
@@ -171,12 +178,15 @@
 
   function renderRooms() {
     rooms.innerHTML = ''
-    if (!state.config.showRooms) return
-    var exists = state.objects.some(function(o) { return String(o.id) === state.room })
-    if (!exists) state.room = 'all'
-    var entries = [{ id: 'all', name: 'Tout' }].concat(state.objects)
-    if (entries.length <= 2) {
-      // Une seule pièce : les onglets ne servent à rien
+    if (!state.config.showRooms) {
+      state.room = 'all'
+      return
+    }
+    var entries = (hasHome() ? [{ id: 'home', name: 'Accueil' }] : []).concat([{ id: 'all', name: 'Tout' }], state.objects)
+    var exists = entries.some(function(o) { return String(o.id) === state.room })
+    if (!exists) state.room = hasHome() ? 'home' : 'all'
+    if (entries.length <= 2 && !hasHome()) {
+      // Une seule pièce et pas d'accueil : les onglets ne servent à rien
       state.room = 'all'
       return
     }
@@ -1465,6 +1475,23 @@
     document.getElementById('clock').textContent =
       String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
   }
+
+  // Retour automatique à l'accueil quand personne n'utilise l'écran
+  var idleTimer = null
+  function armIdle() {
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(function() {
+      var overlay = app.querySelector('.overlay')
+      if (overlay) overlay.remove()
+      if (state.config && state.config.showRooms && hasHome() && state.room !== 'home') {
+        state.room = 'home'
+        render()
+        grid.scrollTop = 0
+      }
+    }, HOME_IDLE_MS)
+  }
+  document.addEventListener('pointerdown', armIdle)
+  armIdle()
 
   window.addEventListener('resize', function() { if (state.config) applyScreen() })
   document.addEventListener('visibilitychange', function() { if (!document.hidden) poll() })

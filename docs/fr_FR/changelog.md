@@ -1,5 +1,9 @@
 # Changelog RPi Dash
 
+## 1.3.0
+
+- Page Accueil : équipements choisis (case « Accueil »), affichée au démarrage, retour automatique après 2 min d'inactivité.
+
 ## 1.2.0
 
 - Nouveaux widgets : météo (prévisions), caméra, portail, spa, boîte aux lettres, poubelles, robot aspirateur, présence.
