@@ -1,0 +1,17 @@
+{
+  "id": "rpidash",
+  "name": "RPi Dash",
+  "description": {
+    "fr_FR": "Affiche l'état de vos équipements et pilote leurs boutons depuis un écran tactile (Raspberry Pi en mode kiosque).",
+    "en_US": "Shows your equipment states and drives their buttons from a touch screen (Raspberry Pi in kiosk mode)."
+  },
+  "licence": "AGPL",
+  "author": "matheobl86",
+  "require": "4.2",
+  "category": "organization",
+  "hasDependency": false,
+  "hasOwnDeamon": false,
+  "maxDependancyInstallTime": 0,
+  "documentation": "https://github.com/matheobl86/Plugin-jeedom/blob/master/docs/fr_FR/index.md",
+  "changelog": "https://github.com/matheobl86/Plugin-jeedom/blob/master/docs/fr_FR/changelog.md"
+}
