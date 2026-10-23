@@ -118,3 +118,65 @@ select {
   width: 100%; min-height: 2.6em; border: 0; border-radius: 10px; padding: 0 .6em;
   background: var(--panel-2); color: var(--text); font: inherit;
 }
+
+/* En-tête de tuile */
+.tile-head { display: flex; align-items: center; gap: .55em; min-width: 0; }
+.tile-titles { min-width: 0; flex: 1; }
+.tile-head .tile-room { margin-top: 0; }
+.ico { display: inline-flex; width: 1.3em; height: 1.3em; flex: none; }
+.ico svg { width: 100%; height: 100%; }
+.tile-icon { width: 1.6em; height: 1.6em; color: var(--accent); }
+.actions.icons .btn .ico { width: 1.5em; height: 1.5em; }
+.btn .ico { vertical-align: middle; }
+.btn.active { background: var(--accent); color: #fff; }
+
+/* Gros interrupteur (lumière, prise, serrure, alarme) */
+.big-switch {
+  width: 100%; min-height: 3.6em; display: flex; align-items: center; gap: .7em;
+  border: 0; border-radius: 12px; padding: .5em .9em; cursor: pointer;
+  background: var(--panel-2); color: var(--muted); font: inherit; font-weight: 700; font-size: 1.05em;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+.big-switch .ico { width: 1.9em; height: 1.9em; }
+.big-switch:active { transform: scale(.98); }
+.big-switch.on { color: var(--text); }
+.w-light .big-switch.on { background: rgba(250, 204, 21, .18); }
+.w-light .big-switch.on .ico { color: #facc15; filter: drop-shadow(0 0 6px rgba(250, 204, 21, .7)); }
+.w-plug .big-switch.on .ico, .w-lock .big-switch.on .ico { color: var(--on); }
+.w-alarm .big-switch.on { background: rgba(239, 68, 68, .15); }
+.w-alarm .big-switch.on .ico { color: var(--danger); }
+.big-switch.pending { opacity: .6; }
+
+/* Grande valeur (capteur, thermostat, volet) */
+.big-value { font-size: 2.1em; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.big-value small { font-size: .45em; font-weight: 500; color: var(--muted); margin-left: .15em; }
+
+/* Volet */
+.shutter-row { display: flex; align-items: center; gap: .8em; }
+.shutter {
+  width: 2.6em; height: 2.6em; border-radius: 6px; flex: none; position: relative; overflow: hidden;
+  background: linear-gradient(#7dd3fc, #bae6fd); border: 2px solid var(--muted);
+}
+.shutter-blind {
+  position: absolute; top: 0; left: 0; right: 0; height: 0; transition: height .4s;
+  background: repeating-linear-gradient(var(--muted) 0 3px, var(--panel-2) 3px 6px);
+}
+.shutter-row .big-value { font-size: 1.5em; }
+
+/* Thermostat */
+.thermo-top { display: flex; align-items: center; justify-content: space-between; gap: .5em; }
+.badge.heat { background: #f97316; }
+.setpoint { display: flex; align-items: center; gap: .5em; }
+.setpoint-value { flex: 1; display: flex; flex-direction: column; align-items: center; font-variant-numeric: tabular-nums; }
+.setpoint-value small { color: var(--muted); font-size: .75em; }
+.setpoint-value b { font-size: 1.2em; white-space: nowrap; }
+.btn.round { flex: none; width: 2.8em; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Détecteur */
+.detector {
+  display: flex; align-items: center; gap: .7em; padding: .5em .9em; border-radius: 12px;
+  background: var(--panel-2); color: var(--muted); font-weight: 700; font-size: 1.05em; min-height: 3.2em;
+}
+.detector .ico { width: 1.8em; height: 1.8em; }
+.detector.active { color: var(--accent); }
+.detector.alert { background: rgba(239, 68, 68, .2); color: var(--danger); animation: blink 1.2s infinite; }

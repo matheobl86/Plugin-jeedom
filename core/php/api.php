@@ -11,6 +11,7 @@
  * API JSON utilisée par l'écran.
  *   action=get     : configuration de l'écran + équipements/commandes
  *   action=values  : valeurs actuelles des commandes info
+ *   action=diagnostic : résumé des équipements (lecture seule) pour adapter les widgets
  *   action=exec    : exécute une commande action (cmd_id, value | title + message)
  * Paramètres communs : apikey (clé API du plugin), id (équipement RPi Dash).
  */
@@ -49,6 +50,11 @@ try {
                 'objects' => $eqLogic->getDashboardObjects(),
                 'values' => $eqLogic->getDashboardValues(),
             ));
+            break;
+
+        case 'diagnostic':
+            // Lecture seule : équipements de cet écran, commandes, types génériques, widget détecté
+            rpidash_reply($eqLogic->getDiagnostic());
             break;
 
         case 'values':

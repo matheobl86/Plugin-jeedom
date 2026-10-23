@@ -24,6 +24,7 @@ class rpidash extends eqLogic {
         'showClock' => 1,
         'showRooms' => 1,
         'equipments' => '',
+        'widgets' => '',
     );
 
     /*     * ***********************Methode static*************************** */
@@ -45,6 +46,75 @@ class rpidash extends eqLogic {
         );
     }
 
+    public static function getWidgetTypes() {
+        return array(
+            'auto' => __('Automatique', __FILE__),
+            'light' => __('Lumière', __FILE__),
+            'plug' => __('Prise / interrupteur', __FILE__),
+            'shutter' => __('Volet / store', __FILE__),
+            'thermostat' => __('Thermostat / chauffage', __FILE__),
+            'sensor' => __('Capteur (valeurs)', __FILE__),
+            'detector' => __('Détecteur (ouverture, mouvement, fumée…)', __FILE__),
+            'lock' => __('Serrure', __FILE__),
+            'alarm' => __('Alarme', __FILE__),
+            'generic' => __('Générique (toutes les commandes)', __FILE__),
+        );
+    }
+
+    /**
+     * Devine le widget le plus adapté à un équipement, d'après les types génériques
+     * de ses commandes puis sa catégorie Jeedom.
+     */
+    public static function detectWidget($eqLogic) {
+        $types = array();
+        $hasAction = false;
+        $hasNumeric = false;
+        $hasBinary = false;
+        foreach ($eqLogic->getCmd() as $cmd) {
+            $genericType = strtoupper(self::genericType($cmd));
+            if ($genericType != '') {
+                $types[] = $genericType;
+            }
+            if ($cmd->getType() == 'action') {
+                $hasAction = true;
+            } elseif ($cmd->getSubType() == 'numeric') {
+                $hasNumeric = true;
+            } elseif ($cmd->getSubType() == 'binary') {
+                $hasBinary = true;
+            }
+        }
+        $byType = array(
+            '/^(THERMOSTAT_|HEATING_)/' => 'thermostat',
+            '/^FLAP_/' => 'shutter',
+            '/^LIGHT_/' => 'light',
+            '/^LOCK_/' => 'lock',
+            '/^ALARM_/' => 'alarm',
+            '/^ENERGY_(STATE|ON|OFF)$/' => 'plug',
+            '/^(OPENING|OPENING_WINDOW|PRESENCE|SMOKE|FLOOD|GARAGE_STATE|GATE_STATE|BARRIER_STATE)$/' => 'detector',
+        );
+        foreach ($byType as $regex => $widget) {
+            if (count(preg_grep($regex, $types)) > 0) {
+                return $widget;
+            }
+        }
+        if ($hasAction) {
+            $byCategory = array('light' => 'light', 'heating' => 'thermostat', 'opening' => 'shutter', 'energy' => 'plug');
+            foreach ($byCategory as $category => $widget) {
+                if ($eqLogic->getCategory($category, 0) == 1) {
+                    return $widget;
+                }
+            }
+            return 'generic';
+        }
+        if ($hasNumeric) {
+            return 'sensor';
+        }
+        if ($hasBinary) {
+            return 'detector';
+        }
+        return 'generic';
+    }
+
     /*     * *********************Méthodes d'instance************************* */
 
     public function preSave() {
@@ -60,6 +130,25 @@ class rpidash extends eqLogic {
     public function getSelectedEquipmentIds() {
         $ids = array_map('intval', explode(',', (string) $this->getConfiguration('equipments', '')));
         return array_values(array_unique(array_filter($ids)));
+    }
+
+    /**
+     * Réglages par équipement, stockés sous la forme "id:widget:taille,id:widget:taille".
+     */
+    public function getEquipmentOptions() {
+        $widgets = self::getWidgetTypes();
+        $options = array();
+        foreach (explode(',', (string) $this->getConfiguration('widgets', '')) as $entry) {
+            $parts = explode(':', trim($entry));
+            if (count($parts) < 2 || (int) $parts[0] <= 0) {
+                continue;
+            }
+            $options[(int) $parts[0]] = array(
+                'widget' => isset($widgets[$parts[1]]) ? $parts[1] : 'auto',
+                'size' => isset($parts[2]) ? max(1, min(2, (int) $parts[2])) : 1,
+            );
+        }
+        return $options;
     }
 
     public function getScreenConfig() {
@@ -94,6 +183,7 @@ class rpidash extends eqLogic {
      */
     public function getDashboardObjects() {
         $groups = array();
+        $options = $this->getEquipmentOptions();
         foreach ($this->getSelectedEquipmentIds() as $eqLogicId) {
             $eqLogic = eqLogic::byId($eqLogicId);
             if (!is_object($eqLogic) || $eqLogic->getIsEnable() != 1) {
@@ -114,10 +204,13 @@ class rpidash extends eqLogic {
                     'eqLogics' => array(),
                 );
             }
+            $option = isset($options[$eqLogicId]) ? $options[$eqLogicId] : array('widget' => 'auto', 'size' => 1);
             $groups[$objectId]['eqLogics'][] = array(
                 'id' => (int) $eqLogic->getId(),
                 'name' => $eqLogic->getName(),
                 'order' => (int) $eqLogic->getOrder(),
+                'widget' => $option['widget'] == 'auto' ? self::detectWidget($eqLogic) : $option['widget'],
+                'size' => $option['size'],
                 'cmds' => $cmds,
             );
         }
@@ -191,7 +284,7 @@ class rpidash extends eqLogic {
             'type' => $cmd->getType(),
             'subType' => $cmd->getSubType(),
             'unit' => $cmd->getUnite(),
-            'genericType' => method_exists($cmd, 'getGeneric_type') ? (string) $cmd->getGeneric_type() : '',
+            'genericType' => self::genericType($cmd),
         );
         if ($cmd->getType() == 'action') {
             $linkedId = self::linkedInfoId($cmd);
@@ -218,6 +311,59 @@ class rpidash extends eqLogic {
         return $data;
     }
 
+    private static function genericType($cmd) {
+        return method_exists($cmd, 'getGeneric_type') ? (string) $cmd->getGeneric_type() : '';
+    }
+
+    /**
+     * Résumé des équipements sélectionnés (sans clé API) pour diagnostiquer l'affichage.
+     */
+    public function getDiagnostic() {
+        $options = $this->getEquipmentOptions();
+        $equipments = array();
+        foreach ($this->getSelectedEquipmentIds() as $eqLogicId) {
+            $eqLogic = eqLogic::byId($eqLogicId);
+            if (!is_object($eqLogic)) {
+                continue;
+            }
+            $cmds = array();
+            foreach ($eqLogic->getCmd() as $cmd) {
+                $line = array(
+                    'id' => (int) $cmd->getId(),
+                    'name' => $cmd->getName(),
+                    'type' => $cmd->getType() . '/' . $cmd->getSubType(),
+                    'generic' => self::genericType($cmd),
+                    'visible' => (int) $cmd->getIsVisible(),
+                );
+                if ($cmd->getType() == 'info') {
+                    $line['value'] = self::cmdValue($cmd);
+                    $line['unit'] = $cmd->getUnite();
+                } elseif (self::linkedInfoId($cmd) > 0) {
+                    $line['linked'] = self::linkedInfoId($cmd);
+                }
+                $cmds[] = $line;
+            }
+            $object = $eqLogic->getObject();
+            $equipments[] = array(
+                'id' => (int) $eqLogic->getId(),
+                'name' => $eqLogic->getName(),
+                'room' => is_object($object) ? $object->getName() : '',
+                'plugin' => $eqLogic->getEqType_name(),
+                'enabled' => (int) $eqLogic->getIsEnable(),
+                'detected' => self::detectWidget($eqLogic),
+                'chosen' => isset($options[$eqLogicId]) ? $options[$eqLogicId]['widget'] : 'auto',
+                'cmds' => $cmds,
+            );
+        }
+        return array(
+            'plugin' => 'rpidash',
+            'version' => '1.1.0',
+            'jeedom' => method_exists('jeedom', 'version') ? jeedom::version() : '',
+            'screen' => $this->getScreenConfig(),
+            'equipments' => $equipments,
+        );
+    }
+
     private static function linkedInfoId($cmd) {
         return (int) trim((string) $cmd->getValue(), '# ');
     }
@@ -229,7 +375,9 @@ class rpidash extends eqLogic {
             return null;
         }
         if ($cmd->getSubType() == 'binary') {
-            return (int) (bool) $value;
+            // Respecte l'option "Inverser" de la commande dans Jeedom
+            $value = (int) (bool) $value;
+            return $cmd->getDisplay('invertBinary', 0) == 1 ? 1 - $value : $value;
         }
         if ($cmd->getSubType() == 'numeric' && is_numeric($value)) {
             return $value + 0;

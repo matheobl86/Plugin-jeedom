@@ -189,6 +189,16 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
                   <span class="help-block">{{À lancer au démarrage du Raspberry Pi (voir la documentation).}}</span>
                 </div>
               </div>
+
+              <legend><i class="fas fa-stethoscope"></i> {{Diagnostic}}</legend>
+              <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-8">
+                  <span class="help-block">{{Génère un résumé des équipements de cet écran (noms, commandes, types génériques, valeurs, widget détecté), sans la clé API. Copiez-le pour demander de l'aide afin d'adapter les widgets.}}</span>
+                  <a class="btn btn-default" id="bt_rpidashDiagnostic"><i class="fas fa-file-medical-alt"></i> {{Générer}}</a>
+                  <a class="btn btn-default" id="bt_rpidashDiagnosticCopy" style="display:none;"><i class="fas fa-copy"></i> {{Copier}}</a>
+                  <textarea class="form-control" id="ta_rpidashDiagnostic" rows="10" readonly style="font-family:monospace;margin-top:8px;display:none;"></textarea>
+                </div>
+              </div>
             </div>
           </fieldset>
         </form>
@@ -205,26 +215,39 @@ $available[] = array('name' => __('Aucun objet', __FILE__), 'eqLogics' => eqLogi
         </div>
         <div id="div_rpidashEquipments">
           <?php
+          $widgetTypes = rpidash::getWidgetTypes();
           foreach ($available as $group) {
-              $items = '';
+              $rows = '';
               foreach ($group['eqLogics'] as $eq) {
                   if ($eq->getEqType_name() == 'rpidash') {
                       continue;
                   }
+                  $detected = rpidash::detectWidget($eq);
                   $disabled = $eq->getIsEnable() ? '' : ' <span class="label label-default">{{Désactivé}}</span>';
-                  $items .= '<label class="checkbox-inline rpidashEqItem" style="min-width:260px;margin-left:0;margin-right:10px;" data-search="' . htmlspecialchars(strtolower($group['name'] . ' ' . $eq->getName() . ' ' . $eq->getEqType_name())) . '">';
-                  $items .= '<input type="checkbox" class="rpidashEqSelect" data-id="' . $eq->getId() . '"> ';
-                  $items .= htmlspecialchars($eq->getName()) . ' <small class="text-muted">(' . $eq->getEqType_name() . ')</small>' . $disabled;
-                  $items .= '</label>';
+                  $rows .= '<tr class="rpidashEqItem" data-search="' . htmlspecialchars(strtolower($group['name'] . ' ' . $eq->getName() . ' ' . $eq->getEqType_name())) . '">';
+                  $rows .= '<td><label style="font-weight:normal;margin:0;"><input type="checkbox" class="rpidashEqSelect" data-id="' . $eq->getId() . '"> ';
+                  $rows .= htmlspecialchars($eq->getName()) . ' <small class="text-muted">(' . $eq->getEqType_name() . ')</small>' . $disabled . '</label></td>';
+                  $rows .= '<td style="width:300px;"><select class="form-control input-sm rpidashEqWidget" data-id="' . $eq->getId() . '">';
+                  foreach ($widgetTypes as $key => $label) {
+                      if ($key == 'auto') {
+                          $label .= ' (' . $widgetTypes[$detected] . ')';
+                      }
+                      $rows .= '<option value="' . $key . '">' . htmlspecialchars($label) . '</option>';
+                  }
+                  $rows .= '</select></td>';
+                  $rows .= '<td style="width:130px;"><select class="form-control input-sm rpidashEqSize" data-id="' . $eq->getId() . '">';
+                  $rows .= '<option value="1">{{Tuile normale}}</option><option value="2">{{Tuile large}}</option>';
+                  $rows .= '</select></td></tr>';
               }
-              if ($items == '') {
+              if ($rows == '') {
                   continue;
               }
-              echo '<fieldset class="rpidashGroup"><legend>' . htmlspecialchars($group['name']) . '</legend>' . $items . '</fieldset><br>';
+              echo '<fieldset class="rpidashGroup"><legend>' . htmlspecialchars($group['name']) . '</legend>';
+              echo '<table class="table table-condensed table-hover"><thead><tr><th>{{Équipement}}</th><th>{{Widget}}</th><th>{{Taille}}</th></tr></thead><tbody>' . $rows . '</tbody></table></fieldset>';
           }
           ?>
         </div>
-        <span class="help-block">{{Seules les commandes visibles des équipements actifs sont affichées sur l'écran. Les actions (boutons, curseurs, couleurs, listes) sont pilotables directement depuis l'écran.}}</span>
+        <span class="help-block">{{Le widget « Automatique » est choisi d'après les types génériques des commandes et la catégorie de l'équipement (le type détecté est indiqué entre parenthèses). Seules les commandes visibles des équipements actifs sont affichées ; les commandes non utilisées par le widget apparaissent en dessous.}}</span>
       </div>
 
     </div>

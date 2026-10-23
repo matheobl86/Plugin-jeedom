@@ -38,16 +38,40 @@ La colonne de droite donne **l'URL de l'écran** et la **commande kiosque** prê
 
 ### Onglet « Équipements affichés »
 
-Cochez les équipements à afficher. Sur l'écran :
+Cochez les équipements à afficher et choisissez pour chacun :
 
-- seules les **commandes visibles** des **équipements actifs** apparaissent ;
-- un couple d'actions *On/Off* relié à une info binaire (valeur de retour) devient **un interrupteur** ;
-- les actions *curseur*, *couleur* et *liste* affichent la valeur de leur info liée ;
-- les autres actions deviennent des **boutons** (une action *message* demande le texte à envoyer) ;
-- les équipements sont regroupés par **pièce** (objet Jeedom), dans l'ordre de Jeedom.
+- **Widget** : *Automatique* (le type détecté est indiqué entre parenthèses) ou un widget imposé ;
+- **Taille** : tuile normale ou **large** (2 colonnes).
 
-Pour qu'un On/Off soit reconnu comme interrupteur, renseignez la *valeur de retour* des actions
-et un type générique (`LIGHT_ON`/`LIGHT_OFF`, `ENERGY_ON`/`ENERGY_OFF`…) ou nommez-les *On*/*Off*.
+| Widget | Détecté si… | Affichage |
+|---|---|---|
+| Lumière | types génériques `LIGHT_*` (ou catégorie Lumière) | gros bouton ampoule allumée/éteinte, curseur de luminosité, couleur |
+| Prise / interrupteur | `ENERGY_STATE/ON/OFF` (ou catégorie Énergie) | gros bouton marche/arrêt |
+| Volet / store | `FLAP_*` (ou catégorie Ouvrant avec actions) | dessin du volet + position, boutons ▲ ■ ▼, curseur |
+| Thermostat / chauffage | `THERMOSTAT_*`, `HEATING_*` (ou catégorie Chauffage) | température, état de chauffe, consigne − / +, boutons de mode |
+| Capteur | uniquement des infos numériques | grande valeur (température en priorité) avec icône adaptée |
+| Détecteur | `OPENING`, `PRESENCE`, `SMOKE`, `FLOOD`, `GARAGE_STATE`… ou infos binaires seules | ouvert/fermé, mouvement, alerte fumée/fuite (clignote en rouge) |
+| Serrure | `LOCK_*` | verrouillé/déverrouillé (confirmation avant d'ouvrir) |
+| Alarme | `ALARM_*` | activée/désactivée (confirmation avant de désactiver), déclenchement, modes |
+| Générique | le reste | toutes les commandes : valeurs, interrupteurs On/Off, boutons, curseurs, listes |
+
+Les commandes qu'un widget n'utilise pas sont affichées en dessous, rien n'est perdu.
+Seules les commandes **visibles** des équipements **actifs** apparaissent.
+
+Conseils :
+
+- la détection repose surtout sur les **types génériques** : renseignez-les sur les commandes
+  (Configuration avancée de l'équipement > Commandes, ou Outils > Types génériques) ;
+- un couple On/Off devient un interrupteur s'il a une **valeur de retour** pointant vers l'info d'état ;
+- si un état binaire est à l'envers (ex. porte affichée ouverte alors qu'elle est fermée), activez
+  l'option **Inverser** de la commande info dans Jeedom ; pour les ouvertures, la convention Jeedom est `1 = fermé`.
+
+### Diagnostic
+
+Le bloc **Diagnostic** de l'onglet Écran génère un résumé des équipements de l'écran (commandes, types
+génériques, valeurs, widget détecté), sans aucune clé. Copiez-le pour demander de l'aide afin d'adapter les widgets.
+
+Le même résumé est disponible par l'API en lecture seule : `api.php?apikey=CLE_DU_PLUGIN&id=ID_ECRAN&action=diagnostic`.
 
 ## Préparer le Raspberry Pi
 
@@ -80,6 +104,7 @@ L'écran utilise `plugins/rpidash/core/php/api.php` (POST ou GET), avec `apikey`
 |---|---|---|
 | `get` | – | configuration de l'écran, pièces, équipements, commandes et valeurs |
 | `values` | – | valeurs actuelles des commandes info |
+| `diagnostic` | – | résumé des équipements (lecture seule) |
 | `exec` | `cmd_id`, `value` (curseur, couleur, liste) ou `title` + `message` | exécute l'action et renvoie les valeurs |
 
 Seules les actions visibles des équipements sélectionnés sur l'écran peuvent être exécutées.
